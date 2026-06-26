@@ -13,8 +13,11 @@ use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Facades\Hash;
 use Illuminate\View\View;
 
+use App\Traits\AutoMaturity;
+
 class AdminController extends Controller
 {
+    use AutoMaturity;
     /**
      * Display admin stats overview.
      */
@@ -39,53 +42,55 @@ class AdminController extends Controller
     /**
      * Show edit user form.
      */
-    public function editUser($id): View
-    {
-        $user = User::findOrFail($id);
-        return view('admin.users_edit', compact('user'));
-    }
+     public function editUser($id): View
+     {
+         $user = User::findOrFail($id);
+         $this->checkMaturity($user);
+         return view('admin.users_edit', compact('user'));
+     }
 
-    /**
-     * Update user profile by admin.
-     */
-    public function updateUser(Request $request, $id): RedirectResponse
-    {
-        $user = User::findOrFail($id);
+     /**
+      * Update user profile by admin.
+      */
+     public function updateUser(Request $request, $id): RedirectResponse
+     {
+         $user = User::findOrFail($id);
 
-        $request->validate([
-            'name' => ['required', 'string', 'max:255'],
-            'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
-            'phone' => ['required', 'string', 'max:20'],
-            'role' => ['required', 'in:admin,user'],
-            'bank_name' => ['nullable', 'string', 'max:100'],
-            'bank_account' => ['nullable', 'string', 'max:50'],
-            'swift_code' => ['nullable', 'string', 'max:20'],
-            'status_kyc' => ['required', 'in:none,pending,approved,rejected'],
-        ]);
+         $request->validate([
+             'name' => ['required', 'string', 'max:255'],
+             'email' => ['required', 'string', 'email', 'max:255', 'unique:users,email,' . $user->id],
+             'phone' => ['required', 'string', 'max:20'],
+             'role' => ['required', 'in:admin,user'],
+             'bank_name' => ['nullable', 'string', 'max:100'],
+             'bank_account' => ['nullable', 'string', 'max:50'],
+             'swift_code' => ['nullable', 'string', 'max:20'],
+             'status_kyc' => ['required', 'in:none,pending,approved,rejected'],
+         ]);
 
-        $user->update($request->only([
-            'name', 'email', 'phone', 'role',
-            'bank_name', 'bank_account', 'swift_code', 'status_kyc'
-        ]));
+         $user->update($request->only([
+             'name', 'email', 'phone', 'role',
+             'bank_name', 'bank_account', 'swift_code', 'status_kyc'
+         ]));
 
-        return redirect()->route('admin.users')->with('status', 'User profile updated successfully.');
-    }
+         return redirect()->route('admin.users')->with('status', 'User profile updated successfully.');
+     }
 
-    /**
-     * Adjust user balance by admin.
-     */
-    public function adjustBalance(Request $request, $id): RedirectResponse
-    {
-        $request->validate([
-            'amount' => ['required', 'numeric'],
-        ]);
+     /**
+      * Adjust user balance by admin.
+      */
+     public function adjustBalance(Request $request, $id): RedirectResponse
+     {
+         $request->validate([
+             'amount' => ['required', 'numeric'],
+         ]);
 
-        $user = User::findOrFail($id);
-        $amount = $request->amount;
+         $user = User::findOrFail($id);
+         $this->checkMaturity($user);
+         $amount = $request->amount;
 
-        try {
-            DB::transaction(function () use ($user, $amount) {
-                $wallet = $user->wallet()->lockForUpdate()->first();
+         try {
+             DB::transaction(function () use ($user, $amount) {
+                 $wallet = $user->wallet()->lockForUpdate()->first();
                 if (!$wallet) {
                     $wallet = $user->wallet()->create([
                         'currency' => $user->currency_code ?? 'USD',

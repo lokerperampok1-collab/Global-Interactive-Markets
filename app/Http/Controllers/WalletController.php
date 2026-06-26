@@ -151,17 +151,21 @@ class WalletController extends Controller
 
         try {
             DB::transaction(function () use ($sender, $recipient, $amount, $fee, $totalDeduction) {
-                // Lock both wallets
-                // Avoid deadlock by sorting IDs
-                $walletIds = [$sender->id, $recipient->id];
-                sort($walletIds);
+                 // Lock both wallets in sorted order of user_ids to prevent deadlocks
+                 $userIds = [$sender->id, $recipient->id];
+                 sort($userIds);
 
-                $senderWallet = $sender->wallet()->lockForUpdate()->first();
-                $recipientWallet = $recipient->wallet()->lockForUpdate()->first();
+                 $wallets = \App\Models\Wallet::whereIn('user_id', $userIds)
+                     ->lockForUpdate()
+                     ->get()
+                     ->keyBy('user_id');
 
-                if (!$senderWallet || !$recipientWallet) {
-                    throw new \Exception('Wallet not found.');
-                }
+                 $senderWallet = $wallets->get($sender->id);
+                 $recipientWallet = $wallets->get($recipient->id);
+
+                 if (!$senderWallet || !$recipientWallet) {
+                     throw new \Exception('Wallet not found.');
+                 }
 
                 // Rule 4: Check sender balance
                 if ($senderWallet->balance < $totalDeduction) {
