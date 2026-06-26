@@ -15,11 +15,28 @@ class DatabaseSeeder extends Seeder
      */
     public function run(): void
     {
-        // User::factory(10)->create();
-
-        User::factory()->create([
-            'name' => 'Test User',
-            'email' => 'test@example.com',
+        // Create Admin User
+        $admin = User::create([
+            'name' => 'Admin',
+            'email' => 'admin@globalinteractivemarkets.com',
+            'password' => bcrypt('admin123'),
+            'phone' => '+1234567890',
+            'role' => 'admin',
+            'country_name' => 'United States',
+            'country_code' => 'US',
+            'currency_code' => 'USD',
+            'currency_symbol' => '$',
+            'status_kyc' => 'approved',
+            'is_withdraw_unlocked' => true,
         ]);
+
+        // Create Admin Wallet
+        $admin->wallet()->create([
+            'currency' => 'USD',
+            'balance' => 5000.00,
+        ]);
+
+        // Call Investment Plan Seeder
+        $this->call(InvestmentPlanSeeder::class);
     }
 }

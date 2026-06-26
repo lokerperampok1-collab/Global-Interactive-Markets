@@ -30,6 +30,15 @@ class UserFactory extends Factory
             'email_verified_at' => now(),
             'password' => static::$password ??= Hash::make('password'),
             'remember_token' => Str::random(10),
+            'phone' => fake()->phoneNumber(),
+            'country_name' => 'United States',
+            'country_code' => 'US',
+            'currency_code' => 'USD',
+            'currency_symbol' => '$',
+            'role' => 'user',
+            'status_kyc' => 'none',
+            'is_disabled' => false,
+            'is_withdraw_unlocked' => false,
         ];
     }
 
